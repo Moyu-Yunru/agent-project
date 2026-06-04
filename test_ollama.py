@@ -3,14 +3,27 @@ Ollama API 调用示例
 兼容 OpenAI 格式，用 Python 轻松调用本地大模型
 """
 
+import os
+
+from dotenv import load_dotenv
 from openai import OpenAI
 from openai import OpenAIError
 
-# 通过 SSH 隧道连接到远端 Ollama 服务；本机 11435 已转发到服务器 Ollama 端口。
-OLLAMA_BASE_URL = "http://127.0.0.1:11435/v1"
+load_dotenv()
 
-# 使用服务器上已经存在的模型，避免请求不存在的模型导致调用失败。
-MODEL_NAME = "qwen3:14b"
+
+def require_env(name):
+    """读取必需环境变量；缺失时尽早给出清晰错误，避免 OpenAI SDK 内部报错不直观。"""
+    value = os.getenv(name)
+    if not value:
+        raise RuntimeError(f"请先在 .env 中配置 {name}")
+    return value
+
+
+# 模型服务配置统一从 .env 读取，切换 OpenAI 官方、本地 Ollama 或第三方兼容服务时只需要改 .env。
+OPENAI_BASE_URL = require_env("OPENAI_BASE_URL")
+OPENAI_API_KEY = require_env("OPENAI_API_KEY")
+MODEL_NAME = require_env("MODEL_NAME")
 TEST_PROMPT = "/no_think\n请只回复四个字：连接成功"
 REASONING_OFF = {
     # Ollama 的 OpenAI 兼容接口支持 reasoning_effort/reasoning.effort；
@@ -21,8 +34,8 @@ REASONING_OFF = {
 
 # 连接到 Ollama 的 OpenAI 兼容接口
 client = OpenAI(
-    base_url=OLLAMA_BASE_URL,
-    api_key="ollama"  # 本地服务不需要真实 API Key，随便填
+    base_url=OPENAI_BASE_URL,
+    api_key=OPENAI_API_KEY,
 )
 
 try:

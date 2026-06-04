@@ -5,15 +5,27 @@
 ssh -N -L 11435:127.0.0.1:11434 server1
 """
 
+import os
+
+from dotenv import load_dotenv
 from openai import OpenAI
 from openai import OpenAIError
 
+load_dotenv()
 
-# 通过 SSH 隧道连接到远端 Ollama 服务；本机 11435 已转发到服务器 Ollama 端口。
-OLLAMA_BASE_URL = "http://127.0.0.1:11435/v1"
 
-# 使用服务器上已经存在的 thinking 模型。
-MODEL_NAME = "qwen3:14b"
+def require_env(name):
+    """读取必需环境变量；缺失时尽早给出清晰错误，避免 OpenAI SDK 内部报错不直观。"""
+    value = os.getenv(name)
+    if not value:
+        raise RuntimeError(f"请先在 .env 中配置 {name}")
+    return value
+
+
+# 模型服务配置统一从 .env 读取，切换 OpenAI 官方、本地 Ollama 或第三方兼容服务时只需要改 .env。
+OPENAI_BASE_URL = require_env("OPENAI_BASE_URL")
+OPENAI_API_KEY = require_env("OPENAI_API_KEY")
+MODEL_NAME = require_env("MODEL_NAME")
 
 # 这个输入会被发送到模型。system 用来规定角色，user 用来放你的真实问题。
 MESSAGES = [
@@ -58,8 +70,8 @@ def read_extra_field(value, *field_names):
 
 
 client = OpenAI(
-    base_url=OLLAMA_BASE_URL,
-    api_key="ollama",
+    base_url=OPENAI_BASE_URL,
+    api_key=OPENAI_API_KEY,
 )
 
 try:
